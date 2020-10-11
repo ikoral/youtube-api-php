@@ -34,6 +34,10 @@
         $db = new DbConnect();
         $db->set_pass($CurrentKeys);
         $conn = $db->connect();
+        
+        // We are printing our fetched videos and exit php
+        // print_r($videos);
+        // exit;
 
         foreach($videos->items as $video) {
                  
@@ -41,7 +45,7 @@
             `thumbnail_url`, `published_at`)
             VALUES (NULL, 1, :vid, :title, :turl, :pdate)";
             //CURRENT_TIMESTAMP
-            print_r($video->snippet->publishedAt);
+            
             $publishDate = date('Y-m-d h:i:s', strtotime($video->snippet->publishedAt));
             $stmt = $conn->prepare($sql);
             $stmt->bindParam(":vid", $video->id->videoId);
