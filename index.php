@@ -18,43 +18,72 @@
         $CurrentKeys = new MyKeys();
 
 
-        $base_url = "https://www.googleapis.com/youtube/v3/";
-        $channelId = "UCE3nwg15c0_aE56ulCca3NQ";
-        $maxResults = 10;
-        
-        $API_URL = $base_url."search?part=snippet&channelId=".$channelId."&maxResults=".$maxResults."&type=video&key=".$CurrentKeys->getAPI();
-
-        //echo $API_URL;
-
-        $videos = json_decode(file_get_contents($API_URL));
-        // echo "<pre>";
-        // print_r($videos);
-        // echo "</pre>";
-
         $db = new DbConnect();
         $db->set_pass($CurrentKeys);
         $conn = $db->connect();
         
-        // We are printing our fetched videos and exit php
-        // print_r($videos);
-        // exit;
+        $base_url = "https://www.googleapis.com/youtube/v3/";
+        $channelId = "UCE3nwg15c0_aE56ulCca3NQ";
+        $maxResults = 10;
+        
+        //$API_URL = $base_url."search?part=snippet&channelId=".$channelId."&maxResults=".$maxResults."&type=video&key=".$CurrentKeys->getAPI();
 
-        foreach($videos->items as $video) {
-                 
-           $sql = "INSERT INTO `youtube`.`videos` (`id`, `video_type`, `video_id`, `title`,
-            `thumbnail_url`, `published_at`)
-            VALUES (NULL, 1, :vid, :title, :turl, :pdate)";
-            //CURRENT_TIMESTAMP
-            
-            $publishDate = date('Y-m-d h:i:s', strtotime($video->snippet->publishedAt));
-            $stmt = $conn->prepare($sql);
-            $stmt->bindParam(":vid", $video->id->videoId);
-            $stmt->bindParam(":title", $video->snippet->title);
-            $stmt->bindParam(":turl", $video->snippet->thumbnails->high->url);
-            $stmt->bindParam(":pdate", $publishDate);
+        //echo $API_URL;
 
-            $stmt->execute();
+        $endPointSet = isset($_GET['vtype']);
+        if ($endPointSet){
+        $videoType = $_GET['vtype'];
+        }else {
+        $videoType = false;
+        }
 
+        if($videoType == 1) {
+            $API_URL = $base_url."search?order=date&part=snippet&channelId=".$channelId."&maxResults=".$maxResults."&type=video&key=".$CurrentKeys->getAPI();
+            getVideos($API_URL);
+        }else if($videoType == 2) {
+            $API_URL = $base_url."playlists?order=date&part=snippet&channelId=".$channelId."&maxResults=".$maxResults."&type=video&key=".$CurrentKeys->getAPI();
+            getPlaylists($API_URL);
+        }
+        function getVideos($API_URL){
+            global $conn;
+            $videos = json_decode(file_get_contents($API_URL));
+            echo "<pre>";
+            print_r($videos);
+            echo "</pre>";
+            foreach($videos->items as $video) {
+                $sql = "INSERT INTO `youtube`.`videos` (`id`, `video_type`, `video_id`, `title`,
+                `thumbnail_url`, `published_at`)
+                VALUES (NULL, 1, :vid, :title, :turl, :pdate)";
+                //CURRENT_TIMESTAMP
+                $publishDate = date('Y-m-d h:i:s', strtotime($video->snippet->publishedAt));
+                $stmt = $conn->prepare($sql);
+                $stmt->bindParam(":vid", $video->id->videoId);
+                $stmt->bindParam(":title", $video->snippet->title);
+                $stmt->bindParam(":turl", $video->snippet->thumbnails->high->url);
+                $stmt->bindParam(":pdate", $publishDate);
+                $stmt->execute();
+            }
+        }
+
+        function getPlaylists($API_URL){
+            global $conn;
+            $playlists = json_decode(file_get_contents($API_URL));
+            foreach($playlists->items as $video) {
+                $sql = "INSERT INTO `youtube`.`videos` (`id`, `video_type`, `video_id`, `title`,
+                `thumbnail_url`, `published_at`)
+                VALUES (NULL, 2, :vid, :title, :turl, :pdate)";
+                //CURRENT_TIMESTAMP
+                $publishDate = date('Y-m-d h:i:s', strtotime($video->snippet->publishedAt));
+                $stmt = $conn->prepare($sql);
+                $stmt->bindParam(":vid", $video->id);
+                $stmt->bindParam(":title", $video->snippet->title);
+                $stmt->bindParam(":turl", $video->snippet->thumbnails->high->url);
+                $stmt->bindParam(":pdate", $publishDate);
+                // echo "<pre>";
+                // print_r($sql);
+                // echo "</pre>";
+                $stmt->execute();
+            }
         }
 
     ?>
